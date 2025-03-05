@@ -10,14 +10,16 @@ void FEM::Compute()
    generate_FE();
    std::cout << "Сборка СЛАУ началась." << std::endl;
    buildPortraitOfMatrix();
-   assemblyGlobalMatrix();
-   bc1(0);
+   assemblyGlobalMatrix(0);
+   bc1();
+   std::cout << "Сборка СЛАУ завершена." << std::endl;
+   std::cout << "Решение СЛАУ началось." << std::endl;
    solver s;
    start_time = clock();
    q = s.BCGSTAB(gg, di, F, ig, jg);
    end_time = clock();
-   CheckSol(0);
-  
+   std::cout << "Решение СЛАУ завершено." << std::endl;
+   CheckSol(0.0);
    prog_time = end_time - start_time;
 
    std::cout << prog_time / 1000 << std::endl;
@@ -26,9 +28,7 @@ void FEM::Compute()
    {
        start_time = clock();
        std::cout << i;
-       assemblyGlobalMatrix();
-       bc1(i);
-       //std::cout << "Сборка СЛАУ завершена." << std::endl;
+       assemblyGlobalMatrix(i);
        std::cout << "Решение СЛАУ началось." << std::endl;
        solver s;
        q = s.BCGSTAB(gg, di, F, ig, jg);
@@ -72,7 +72,7 @@ void FEM::init()
 // Получение значения первого краевого условия
 double FEM::bc1_value(int iedge, int cur_tLayer)
 {
-   double t = time_layer[cur_tLayer];
+    double t = time_layer[cur_tLayer];
    int ielem = FE_from_edge(iedge);
    int loc_edge = globalToLocalEdge(ielem, iedge);
    int loc_node1 = globalToLocalNode(ielem, _elems[ielem].nodes_edges[loc_edge].first);
@@ -115,17 +115,17 @@ double FEM::bc1_value(int iedge, int cur_tLayer)
       switch (var)
       {
       case 0:
-         return p1.x + p1.y + p1.z + t;
+         return p1.x + p1.y + p1.z + 2 *  t;
       case 1:
          return p1.x + 2 * p1.y + p1.z + t;
       case 2:
-         return p1.x + p1.y + 3 * p1.z + t;
+         return p1.x + p1.y + 3 * p1.z + 3 * t;
       }
    case 2:
       switch (var)
       {
       case 0:
-          return pow(p1.x, 2) + pow(p1.y, 2) + pow(p1.z, 2) + pow(t, 2);
+         return pow(p1.x, 2) + pow(p1.y, 2) + pow(p1.z, 2) + pow(t, 2);
       case 1:
          return pow(p1.x, 2) + 2 * pow(p1.y, 2) + pow(p1.z, 2) + pow(t, 2);
       case 2:
@@ -165,10 +165,8 @@ double FEM::bc1_value(int iedge, int cur_tLayer)
    throw "Wrong number of test!";
 }
 
-double FEM::RP_value(int iedge, int cur_tLayer)
+double FEM::RP_value(int iedge)
 {
-
-   double t = time_layer[cur_tLayer];
    int ielem = FE_from_edge(iedge);
    int loc_edge = globalToLocalEdge(ielem, iedge);
    int loc_node1 = globalToLocalNode(ielem, _elems[ielem].nodes_edges[loc_edge].first);
@@ -211,53 +209,145 @@ double FEM::RP_value(int iedge, int cur_tLayer)
       switch (var)
       {
       case 0:
-         return 1.0 / mu * (0) + gamma * (1) ;
+          return 1.0 / mu * (0);
       case 1:
-         return 1.0 / mu * (0) + gamma * (1);
+          return 1.0 / mu * (0);
       case 2:
-         return 1.0 / mu * (0) + gamma * (1);
+          return 1.0 / mu * (0);
       }
    case 2:
       switch (var)
       {
       case 0:
-         return 1.0 / mu * (-4) + gamma * 2 * t;
+         return 1.0 / mu * (-4);
       case 1:
-         return 1.0 / mu * (-4) + gamma * 2 * t;
+         return 1.0 / mu * (-4);
       case 2:
-         return 1.0 / mu * (-4) + gamma * 2 * t;
+         return 1.0 / mu * (-4);
       }
    case 3:
       switch (var)
       {
       case 0:
-         return 1.0 / mu * (-6 * (p1.y + p1.z)) + gamma * 3 * pow(t, 2);
+         return 1.0 / mu * (-6 * (p1.y + p1.z));
       case 1:
-         return 1.0 / mu * (-6 * (p1.x + p1.z)) + gamma * 3 * pow(t, 2);
+         return 1.0 / mu * (-6 * (p1.x + p1.z));
       case 2:
-         return 1.0 / mu * (-6 * (p1.x + p1.y)) + gamma * 3 * pow(t, 2);
+         return 1.0 / mu * (-6 * (p1.x + p1.y));
       }
    case 4:
       switch (var)
       {
       case 0:
-         return 1.0 / mu * (-12 * (pow(p1.y, 2) + pow(p1.z, 2))) + gamma * 4 * pow(t, 3);
+         return 1.0 / mu * (-12 * (pow(p1.y, 2) + pow(p1.z, 2)));
       case 1:
-         return 1.0 / mu * (-12 * (pow(p1.x, 2) + pow(p1.z, 2))) + gamma * 4 * pow(t, 3);
+         return 1.0 / mu * (-12 * (pow(p1.x, 2) + pow(p1.z, 2)));
       case 2:
-         return 1.0 / mu * (-12 * (pow(p1.x, 2) + pow(p1.y, 2))) + gamma * 4 * pow(t, 3);
+         return 1.0 / mu * (-12 * (pow(p1.x, 2) + pow(p1.y, 2)));
       }
    case 5:
       switch (var)
       {
       case 0:
-         return 1.0 / mu * (2 * sin(p1.y + p1.z)) + gamma ;
+         return 1.0 / mu * (2 * sin(p1.y + p1.z));
       case 1:
-         return 1.0 / mu * (2 * sin(p1.x + p1.z)) + gamma ;
+         return 1.0 / mu * (2 * sin(p1.x + p1.z));
       case 2:
-         return 1.0 / mu * (2 * sin(p1.x + p1.y)) + gamma ;
+         return 1.0 / mu * (2 * sin(p1.x + p1.y));
       }
    }
+}
+double FEM::dAdt(int iedge, double t)
+{
+    int ielem = FE_from_edge(iedge);
+    int loc_edge = globalToLocalEdge(ielem, iedge);
+    int loc_node1 = globalToLocalNode(ielem, _elems[ielem].nodes_edges[loc_edge].first);
+    int loc_node2 = globalToLocalNode(ielem, _elems[ielem].nodes_edges[loc_edge].second);
+
+    point p1, p2;
+    p1.x = g.MeshXYZ[_elems[ielem].nodes[loc_node1]].x;
+    p1.y = g.MeshXYZ[_elems[ielem].nodes[loc_node1]].y;
+    p1.z = g.MeshXYZ[_elems[ielem].nodes[loc_node1]].z;
+
+    p2.x = g.MeshXYZ[_elems[ielem].nodes[loc_node2]].x;
+    p2.y = g.MeshXYZ[_elems[ielem].nodes[loc_node2]].y;
+    p2.z = g.MeshXYZ[_elems[ielem].nodes[loc_node2]].z;
+
+    double hx = abs(p1.x - p2.x);
+    double hy = abs(p1.y - p2.y);
+    double hz = abs(p1.z - p2.z);
+
+    int var;
+
+    if (hx > 0) var = 0;
+    else
+        if (hy > 0) var = 1;
+        else
+            if (hz > 0) var = 2;
+
+    switch (var)
+    {
+    case 0:
+        p1.x = (g.MeshXYZ[_elems[ielem].nodes[loc_node1]].x + g.MeshXYZ[_elems[ielem].nodes[loc_node2]].x) / 2.0;
+    case 1:
+        p1.y = (g.MeshXYZ[_elems[ielem].nodes[loc_node1]].y + g.MeshXYZ[_elems[ielem].nodes[loc_node2]].y) / 2.0;
+    case 2:
+        p1.z = (g.MeshXYZ[_elems[ielem].nodes[loc_node1]].z + g.MeshXYZ[_elems[ielem].nodes[loc_node2]].z) / 2.0;
+    }
+
+    switch (num_test)
+    {
+    case 1:
+        switch (var)
+        {
+        case 0:
+            return 2;
+        case 1:
+            return 1;
+        case 2:
+            return 3;
+        }
+    case 2:
+        switch (var)
+        {
+        case 0:
+            return 2 * t;
+        case 1:
+            return 2 * t;
+        case 2:
+            return 2 * t;
+        }
+    case 3:
+        switch (var)
+        {
+        case 0:
+            return 3 * pow(t, 2);
+        case 1:
+            return 3 * pow(t, 2);
+        case 2:
+            return 3 * pow(t, 2);
+        }
+    case 4:
+        switch (var)
+        {
+        case 0:
+            return 4 * pow(t, 3);
+        case 1:
+            return 4 * pow(t, 3);
+        case 2:
+            return 4 * pow(t, 3);
+        }
+    case 5:
+        switch (var)
+        {
+        case 0:
+            return 1.0 / mu * (2 * sin(p1.y + p1.z));
+        case 1:
+            return 1.0 / mu * (2 * sin(p1.x + p1.z));
+        case 2:
+            return 1.0 / mu * (2 * sin(p1.x + p1.y));
+        }
+    }
 }
 
 void FEM::generate_FE()
@@ -300,7 +390,6 @@ void FEM::generate_FE()
    int r = m2 - nx * ny - 1;
    int m3 = m2 - r;
    int m4 = m2 + nx * ny;
-
    //for (int i = 1, k = 0, m = 0; i < nz; i++)
    //{
    //   m = (i - 1) * m4;
@@ -382,7 +471,6 @@ void FEM::generate_FE()
    di.resize(n_edges);
    F.resize(n_edges);
    q.resize(n_edges);
-  
 }
 
 void FEM::edge_from_nodes(int node1, int node2)
@@ -485,7 +573,7 @@ bool FEM::isOrdered(const std::vector<int>& v)
 // Получить значение локальной матрицы жесткости
 void FEM::getLocalG(double hx, double hy, double hz)
 {
-    /*double hy_hz_6hx = hy * hz / (hx * 6.0);
+    double hy_hz_6hx = hy * hz / (hx * 6.0);
     double hx_hz_6hy = hx * hz / (hy * 6.0);
     double hx_hy_6hz = hx * hy / (hz * 6.0);
     double hx_6 = hx / 6.0;
@@ -527,49 +615,16 @@ void FEM::getLocalG(double hx, double hy, double hz)
 
     for (int i = 8; i < 12; i++)
         for (int j = 8; j < 12; j++)
-            G_loc[i][j] = coef * (hx_hz_6hy * G1[i - 8][j - 8] + hy_hz_6hx * G2[i - 8][j - 8]);*/
-
-    for (int i = 0; i < 12; i++)
-    {
-        int mu_i = i % 3;
-        int nu_i = (int)(i / 3) % 3;
-        int ips_i = (int)(i / 9);
-
-        for (int j = 0; j < 12; j++)
-        {
-            int mu_j = (j % 3);
-            int nu_j = (int)(j / 3) % 3;
-            int ips_j = (int)(j / 9);
-
-            G_loc[i][j] = hy * hz / hx * G1[mu_i][mu_j] * M1[nu_i][nu_j] * M1[ips_i][ips_j] +
-                hx * hz / hy * M1[mu_i][mu_j] * G1[nu_i][nu_j] * M1[ips_i][ips_j] +
-                hx * hy / hz * M1[mu_i][mu_j] * M1[nu_i][nu_j] * G1[ips_i][ips_j];
-        }
-    }
+            G_loc[i][j] = coef * (hx_hz_6hy * G1[i - 8][j - 8] + hy_hz_6hx * G2[i - 8][j - 8]);
 
 }
 
 void FEM::getLocalM(double hx, double hy, double hz)
 {
-    for (int i = 0; i < 12; i++)
-    {
-        int mu_i = i % 3;
-        int nu_i = (int)(i / 3) % 3;
-        int ips_i = (int)(i / 9);
-
-        for (int j = 0; j < 12; j++)
-        {
-            int mu_j = j % 3;
-            int nu_j = (int)(j / 3) % 3;
-            int ips_j = (int)(j / 9);
-
-            M_loc[i][j] = hx * hy * hz * M1[mu_i][mu_j] * M1[nu_i][nu_j] * M1[ips_i][ips_j];
-        }
-    }
- /*   double coef = gamma * (hx * hy * hz) / 36.0;
+    double coef = gamma * (hx * hy * hz) / 36.0;
     for (int i = 0; i < M_loc.size(); i++)
         for (int j = 0; j < M_loc[i].size(); j++)
-            M_loc[i][j] = coef * M[i][j];*/
+            M_loc[i][j] = coef * M[i][j];
 }
 
 void FEM::getLocalRightPart(point p, double hx, double hy, double hz, int ielem, int cur_tLayer)
@@ -580,18 +635,18 @@ void FEM::getLocalRightPart(point p, double hx, double hy, double hz, int ielem,
     F_loc.resize(12);
     q0.resize(12);
     q1.resize(12);
+
     std::vector<double> F_loc_tmp = F_loc;
-    
+
     // b^j
     for (int i = 0; i < F_loc_tmp.size(); i++)
-      F_loc_tmp[i] = RP_value(_elems[ielem].edges[i], cur_tLayer);
+        F_loc_tmp[i] = RP_value(_elems[ielem].edges[i]) + gamma * dAdt(_elems[ielem].edges[i], time_layer[cur_tLayer]);
 
     // q^(j-1)
     for (int i = 0; i < q0.size(); i++)
         q0[i] = q[_elems[ielem].edges[i]];
 
-    
-    if(cur_tLayer > 0)
+    if (cur_tLayer > 0)
         dt = 1.0 / (time_layer[cur_tLayer] - time_layer[cur_tLayer - 1]);
 
     double coef = (hx * hy * hz) / 36.0;
@@ -599,7 +654,7 @@ void FEM::getLocalRightPart(point p, double hx, double hy, double hz, int ielem,
     //b^j + 1/delT * M * q^(j-1)
     for (int i = 0; i < M.size(); i++)
         for (int j = 0; j < M.size(); j++)
-            F_loc[i] += F_loc_tmp[j] + dt * (coef * M[i][j]) * q0[j];
+            F_loc[i] += coef * M[i][j] * F_loc_tmp[j] + dt * M_loc[i][j] * q0[j];
 }
 
 // Добавить элемент в глобальную матрицу
@@ -622,7 +677,7 @@ void FEM::addElementToGlobal(int i, int j, double elem)
 }
 
 // Сборка глобальной матрицы
-void FEM::assemblyGlobalMatrix()
+void FEM::assemblyGlobalMatrix(int cur_tLayer)
 {
    gg.clear();
    gg.resize(ig.back(), 0);
@@ -657,7 +712,7 @@ void FEM::assemblyGlobalMatrix()
 }
 
 // Установка первых краевых условий
-void FEM::bc1(int cur_tLayer)
+void FEM::bc1()
 {
     //Левая грань
    int gr = nx * (ny - 1) + ny * (nx - 1);
@@ -666,6 +721,7 @@ void FEM::bc1(int cur_tLayer)
     for(int i = 0; i < nz - 1; i++)
        for (int j = 0; j < ny - 1; j++)
        {
+
           std::vector<int> n(4, 0);
 
           n[0] = i * (gr + pop) + j * (2 * nx - 1) + (nx - 1);
@@ -677,7 +733,7 @@ void FEM::bc1(int cur_tLayer)
           {
              if (!isInBoundary(n[i]))
              {
-                _bc1.push_back({ {n[i]}, {bc1_value(n[i], cur_tLayer)}});
+                _bc1.push_back({ {n[i]}, {bc1_value(n[i], 0)}});
              }
           }
 
@@ -685,7 +741,7 @@ void FEM::bc1(int cur_tLayer)
           {
              if (!isInBoundary(n[i]))
              {
-                _bc1.push_back({ {n[i]}, {bc1_value(n[i], cur_tLayer)} });
+                _bc1.push_back({ {n[i]}, {bc1_value(n[i], 0)} });
              }
           }
        }
@@ -706,7 +762,7 @@ void FEM::bc1(int cur_tLayer)
           {
              if (!isInBoundary(n[i]))
              {
-                _bc1.push_back({ {n[i]}, {bc1_value(n[i], cur_tLayer)} });
+                _bc1.push_back({ {n[i]}, {bc1_value(n[i], 0)} });
              }
           }
 
@@ -714,7 +770,7 @@ void FEM::bc1(int cur_tLayer)
           {
              if (!isInBoundary(n[i]))
              {
-                _bc1.push_back({ {n[i]}, {bc1_value(n[i], cur_tLayer)} });
+                _bc1.push_back({ {n[i]}, {bc1_value(n[i], 0)} });
              }
           }
        }
@@ -736,7 +792,7 @@ void FEM::bc1(int cur_tLayer)
           {
              if (!isInBoundary(n[i]))
              {
-                _bc1.push_back({ {n[i]}, {bc1_value(n[i], cur_tLayer)} });
+                _bc1.push_back({ {n[i]}, {bc1_value(n[i], 0)} });
              }
           }
 
@@ -744,7 +800,7 @@ void FEM::bc1(int cur_tLayer)
           {
              if (!isInBoundary(n[i]))
              {
-                _bc1.push_back({ {n[i]}, {bc1_value(n[i], cur_tLayer)} });
+                _bc1.push_back({ {n[i]}, {bc1_value(n[i], 0)} });
              }
           }
        }
@@ -766,7 +822,7 @@ void FEM::bc1(int cur_tLayer)
           {
              if (!isInBoundary(n[i]))
              {
-                _bc1.push_back({ {n[i]}, {bc1_value(n[i], cur_tLayer)} });
+                _bc1.push_back({ {n[i]}, {bc1_value(n[i], 0)} });
              }
           }
 
@@ -774,7 +830,7 @@ void FEM::bc1(int cur_tLayer)
           {
              if (!isInBoundary(n[i]))
              {
-                _bc1.push_back({ {n[i]}, {bc1_value(n[i], cur_tLayer)} });
+                _bc1.push_back({ {n[i]}, {bc1_value(n[i], 0)} });
              }
           }
        }
@@ -796,7 +852,7 @@ void FEM::bc1(int cur_tLayer)
           {
              if (!isInBoundary(n[i]))
              {
-                _bc1.push_back({ {n[i]}, {bc1_value(n[i], cur_tLayer)} });
+                _bc1.push_back({ {n[i]}, {bc1_value(n[i], 0)} });
              }
           }
 
@@ -804,7 +860,7 @@ void FEM::bc1(int cur_tLayer)
           {
              if (!isInBoundary(n[i]))
              {
-                _bc1.push_back({ {n[i]}, {bc1_value(n[i], cur_tLayer)} });
+                _bc1.push_back({ {n[i]}, {bc1_value(n[i], 0)} });
              }
           }
        }
@@ -825,7 +881,7 @@ void FEM::bc1(int cur_tLayer)
           {
              if (!isInBoundary(n[i]))
              {
-                _bc1.push_back({ {n[i]}, {bc1_value(n[i], cur_tLayer)} });
+                _bc1.push_back({ {n[i]}, {bc1_value(n[i], 0)} });
              }
           }
 
@@ -833,7 +889,7 @@ void FEM::bc1(int cur_tLayer)
           {
              if (!isInBoundary(n[i]))
              {
-                _bc1.push_back({ {n[i]}, {bc1_value(n[i], cur_tLayer)} });
+                _bc1.push_back({ {n[i]}, {bc1_value(n[i], 0)} });
              }
           }
        }
@@ -905,8 +961,7 @@ bool FEM::isInBoundary(int num)
 
 void FEM::CheckSol(int cur_tLayer)
 {
-   std::string path = (("test/") + std::to_string(cur_tLayer) + ("/Solution.txt"));
-   std::ofstream out(path);
+   std::ofstream out("files/Solution"+ std::to_string(cur_tLayer) +".txt");
    std::vector<double> q_true;
 
    out << "iedge" << std::setw(5) << "q" << std::setw(21) << "q*" << std::setw(27) << "|q - q*|" << std::setw(29) << "||q - q*||/||q*||" << std::endl;
@@ -926,7 +981,9 @@ void FEM::CheckSol(int cur_tLayer)
    double norm_true = 0;
    for (int i = 0; i < pogr.size(); i++)
       norm_true += q_true[i] * q_true[i];
-   
+
+   //out << std::scientific << sqrt(norm) / sqrt(norm_true);
+
    out << std::scientific << 0 << std::setw(20) << q[0] << std::setw(20) << q_true[0] << std::setw(20) << pogr[0] << std::setw(20) << sqrt(norm) / sqrt(norm_true) << std::endl;
 
    for(int i = 1; i < 10; i++)
